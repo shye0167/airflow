@@ -1,7 +1,8 @@
 from airflow import DAG
 import datetime
 import pendulum
-import airflow.operators.bash import BashOperator
+from airflow.operators.bash import BashOperator
+
 
 with DAG(
     # 직관적으로 찾기위해 DAG id랑 python file명이랑 일치시키는게 좋음.
@@ -15,7 +16,7 @@ with DAG(
 ) as dag:
     bash_t1 = BashOperator(
         task_id="bash_t1",
-        bash_command="echo whomai",
+        bash_command="echo whoami",
     )
 
     bash_t2 = BashOperator(
