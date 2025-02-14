@@ -4,7 +4,7 @@ import datetime
 from airflow.operators.empty import EmptyOperator
 
 with DAG(
-    dag_id="dag_bash_select_fruit",
+    dag_id="dags_conn_test",
     schedule=None,
     start_date=pendulum.datetime(2025, 2, 1, tz="Asia/Seoul"),
     catchup=False,
