@@ -3,7 +3,6 @@ import datetime
 import pendulum
 from airflow.operators.email import EmailOperator
 
-
 with DAG(
     dag_id="dags_email_operator",
     schedule="0 8 1 * *",
