@@ -1,11 +1,11 @@
 from config.on_failure_callback_to_kakao import on_failure_callback_to_kakao
 from airflow import DAG
 import pendulum
+from datetime import timedelta
 from airflow.operators.bash import BashOperator
 
 
 with DAG (
-    # 직관적으로 찾기위해 DAG id랑 python file명이랑 일치시키는게 좋음.
     dag_id = 'dags_on_failure_callback_to_kakao',
     schedule="*/20 * * * *",
     start_date=pendulum.datetime(2025, 2, 1, tz="Asia/Seoul"),
