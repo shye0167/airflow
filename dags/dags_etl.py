@@ -5,31 +5,18 @@ import json
 import psycopg2
 import cx_Oracle
 
-# 오라클 및 PostgreSQL 연결 정보
-ORACLE_CONFIG = {
-    "user": "CIDSDM",
-    "password": "CIDSDM123!#",
-    "dsn": "165.244.90.33:1525/GLDBDEV"
-}
-
-POSTGRES_CONFIG = {
-    "host": "172.28.0.3",
-    "database": "shkim",
-    "user": "shkim",
-    "password": "shkim",
-}
-
 # 1. Extract: 오라클에서 데이터 추출
 def extract_data():
-    conn = cx_Oracle.connect(**ORACLE_CONFIG)
+    dsn = cx_Oracle.makedsn("165.244.90.33", 1525, service_name="GLDBDEV")
+    conn = cx_Oracle.connect(user="CIDSDM", password="CIDSDM123!#", dsn=dsn)
     cur = conn.cursor()
-    cur.execute("SELECT * FROM D_AREA")
+    cur.execute("SELECT * FROM CIDSDM.D_AREA")
     data = cur.fetchall()
     cur.close()
     conn.close()
     return data
 
-# 2. Transform: 데이터 변환 (예제: JSON 변환)
+# 2. Transform: 데이터 변환
 def transform_data(ti):
     raw_data = ti.xcom_pull(task_ids='extract')
     transformed_data = [{"id": row[0], "value": row[1]} for row in raw_data]
@@ -38,7 +25,12 @@ def transform_data(ti):
 # 3. Load: PostgreSQL에 적재
 def load_data(ti):
     transformed_data = ti.xcom_pull(task_ids='transform')
-    conn = psycopg2.connect(**POSTGRES_CONFIG)
+    conn = psycopg2.connect(
+        host="172.28.0.3",
+        database="shkim",
+        user="shkim",
+        password="shkim"
+    )
     cur = conn.cursor()
     for row in transformed_data:
         cur.execute("INSERT INTO your_postgres_table (id, value) VALUES (%s, %s)", (row["id"], row["value"]))
@@ -55,10 +47,12 @@ default_args = {
 }
 
 dag = DAG(
-    'oracle_to_postgres_etl',
+    dag_id='oracle_to_postgres_etl',
     default_args=default_args,
-    schedule_interval='@daily',  # 매일 실행
+    schedule_interval='@daily',
     catchup=False,
+    description='ETL process from Oracle to PostgreSQL',
+    tags=['etl'],
 )
 
 extract_task = PythonOperator(
@@ -70,16 +64,16 @@ extract_task = PythonOperator(
 transform_task = PythonOperator(
     task_id='transform',
     python_callable=transform_data,
-    provide_context=True,
+    op_kwargs={'ti': '{{ task_instance }}'},
     dag=dag,
 )
 
 load_task = PythonOperator(
     task_id='load',
     python_callable=load_data,
-    provide_context=True,
+    op_kwargs={'ti': '{{ task_instance }}'},
     dag=dag,
 )
 
-# 작업 순서 정의 (Extract → Transform → Load)
+# DAG 실행 순서
 extract_task >> transform_task >> load_task
