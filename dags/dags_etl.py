@@ -55,6 +55,7 @@ dag = DAG(
     tags=['etl'],
 )
 
+# `op_kwargs`에서 `ti`를 주입하는 방식이 Airflow 2.x에서 작동하도록 수정
 extract_task = PythonOperator(
     task_id='extract',
     python_callable=extract_data,
