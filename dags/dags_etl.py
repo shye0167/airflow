@@ -4,6 +4,10 @@ from datetime import datetime
 import json
 import psycopg2
 import cx_Oracle
+import sys
+# DAG 파일 경로 확인
+print("DAG file path:", __file__)
+print("Python executable path:", sys.executable)
 
 # 1. Extract: 오라클에서 데이터 추출
 def extract_data():
