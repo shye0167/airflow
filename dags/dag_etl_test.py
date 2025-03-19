@@ -1,42 +1,30 @@
 from airflow import DAG
+from airflow.providers.mysql.hooks.mysql import MySqlHook
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-import pendulum
 import pandas as pd
-import mysql.connector
-from sqlalchemy import create_engine
 
 # DAG 기본 설정
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': pendulum.datetime(2025, 3, 14, tz="UTC"),
-
+    'start_date': datetime(2024, 3, 19),
+    'retries': 1,
 }
 
 def extract_from_mysql():
     """ MySQL에서 데이터를 추출하여 DataFrame으로 반환 """
-    # MySQL 연결 설정
-    mysql_conn = mysql.connector.connect(
-        host="mysql_db",  # MySQL 컨테이너 이름
-        user="airflow",    # MySQL 사용자명
-        password="airflow",# MySQL 비밀번호
-        database="airflow_db"  # 데이터베이스명
-    )
-    
+    mysql_hook = MySqlHook(mysql_conn_id='mysql_conn')  # Airflow UI에서 연결을 설정해야 합니다.
     sql = "SELECT * FROM d_area;"
-    df = pd.read_sql(sql, mysql_conn)
-    mysql_conn.close()  # 연결 종료
+    df = mysql_hook.get_pandas_df(sql)
     return df.to_dict()  # XCom으로 전송
 
 def transform_data(**kwargs):
-    """ 데이터를 변환 (예제에서는 단순 변환) """
+    """ 데이터를 변환 (현재는 아무 작업도 하지 않고 그대로 반환) """
     ti = kwargs['ti']
     data = ti.xcom_pull(task_ids='extract')
-    df = pd.DataFrame.from_dict(data)
-    # 예제 변환: 특정 컬럼 값 변경
-    df['new_column'] = df['existing_column'] * 2  # 예제 변환
-    return df.to_dict()
+    return data  # 변환 없이 그대로 반환
 
 def load_to_postgres(**kwargs):
     """ PostgreSQL로 변환된 데이터를 적재 """
@@ -44,17 +32,16 @@ def load_to_postgres(**kwargs):
     data = ti.xcom_pull(task_ids='transform')
     df = pd.DataFrame.from_dict(data)
     
-    # PostgreSQL 연결 설정
-    postgres_conn_str = 'postgresql://airflow:airflow@localhost:5432/shkim'  # PostgreSQL URI
-    engine = create_engine(postgres_conn_str)
+    postgres_hook = PostgresHook(postgres_conn_id='postgres_conn')  # Airflow UI에서 설정 필요
+    engine = postgres_hook.get_sqlalchemy_engine()
     
-    df.to_sql('d_area', con=engine, if_exists='replace', index=False)
-
+    df.to_sql('destination_table', con=engine, if_exists='replace', index=False)
+    
 # DAG 정의
 with DAG(
-    dag_id ='dags_etl_test',
+    dagid='dag_etl_test',
     default_args=default_args,
-    # schedule_interval='@daily',
+    schedule_interval='@daily',
     catchup=False,
 ) as dag:
 
