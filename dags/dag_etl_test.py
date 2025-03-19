@@ -17,10 +17,11 @@ def extract_from_mysql():
     """ MySQL에서 데이터를 추출하여 DataFrame으로 반환 """
     # MySQL 연결 정보 하드코딩
     mysql_conn = connect(
-        host='localhost',  # MySQL 서버 호스트
+        host='172.28.0.2',  # MySQL 서버 호스트
         user='airflow',    # MySQL 사용자명
         password='airflow', # MySQL 비밀번호
-        database='airflow_db'  # 데이터베이스 이름
+        database='airflow_db' , # 데이터베이스 이름
+        port= 3306 
     )
     sql = "SELECT * FROM D_AREA;"
     df = pd.read_sql(sql, mysql_conn)
@@ -44,7 +45,8 @@ def load_to_postgres(**kwargs):
     
     # PostgreSQL 연결 정보 하드코딩
     pg_conn = pg_connect(
-        host='localhost',   # PostgreSQL 서버 호스트
+        host='172.28.0.3',   # PostgreSQL 서버 호스트
+        port= 5432 ,
         dbname='shkim',     # PostgreSQL 데이터베이스 이름
         user='shkim',       # PostgreSQL 사용자명
         password='shkim'    # PostgreSQL 비밀번호
@@ -64,7 +66,7 @@ def load_to_postgres(**kwargs):
 
 # DAG 정의
 with DAG(
-    'mysql_to_postgres_etl',
+    'dag_etl_test',
     default_args=default_args,
     schedule_interval='@daily',
     catchup=False,
