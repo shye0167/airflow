@@ -11,14 +11,14 @@ default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
     'start_date': pendulum.datetime(2025, 3, 14, tz="UTC"),
-    
+
 }
 
 def extract_from_mysql():
     """ MySQL에서 데이터를 추출하여 DataFrame으로 반환 """
     # MySQL 연결 설정
     mysql_conn = mysql.connector.connect(
-        host="localhost",  # MySQL 서버 호스트명
+        host="mysql_db",  # MySQL 컨테이너 이름
         user="airflow",    # MySQL 사용자명
         password="airflow",# MySQL 비밀번호
         database="airflow_db"  # 데이터베이스명
