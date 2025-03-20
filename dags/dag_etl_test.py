@@ -8,19 +8,17 @@ from datetime import datetime
 # DAG 기본 설정
 default_args = {
     'owner': 'airflow',
-    'depends_on_past': False,
+    'depends_on_past': False, #이전 실행에 의존하지 않도록 설정
     'start_date': datetime(2024, 3, 19),
     'retries': 1,
 }
 
 def extract_from_mysql():
-    """ MySQL에서 데이터를 추출하여 DataFrame으로 반환 """
-    # MySQL 연결 정보 하드코딩
     mysql_conn = connect(
-        host='172.28.0.2',  # MySQL 서버 호스트
-        user='airflow',    # MySQL 사용자명
-        password='airflow', # MySQL 비밀번호
-        database='airflow_db' , # 데이터베이스 이름
+        host='172.28.0.2',  
+        user='airflow',    
+        password='airflow', 
+        database='airflow_db' ,
         port= 3306 
     )
     sql = "SELECT * FROM D_AREA;"
@@ -29,12 +27,10 @@ def extract_from_mysql():
     return df.to_dict()  # XCom으로 전송
 
 def transform_data(**kwargs):
-    """ 데이터를 변환 (예제에서는 변환을 단순히 pass) """
     ti = kwargs['ti']
     data = ti.xcom_pull(task_ids='extract')
     df = pd.DataFrame.from_dict(data)
-    # 여기에 데이터 변환 로직을 추가할 수 있습니다.
-    # 예시: df['new_column'] = df['existing_column'] * 2  # 예시 변환
+    # 여기에 데이터 변환 로직을 추가
     return df.to_dict()
 
 def load_to_postgres(**kwargs):
@@ -45,13 +41,16 @@ def load_to_postgres(**kwargs):
     
     # PostgreSQL 연결 정보 하드코딩
     pg_conn = pg_connect(
-        host='172.28.0.3',   # PostgreSQL 서버 호스트
+        host='172.28.0.3',   
         port= 5432 ,
-        dbname='shkim',     # PostgreSQL 데이터베이스 이름
-        user='shkim',       # PostgreSQL 사용자명
-        password='shkim'    # PostgreSQL 비밀번호
+        dbname='shkim',     
+        user='shkim',       
+        password='shkim'    
     )
     cursor = pg_conn.cursor()
+
+    #TRUNCATE
+    cursor.execute("TRUNCATE TABLE d_area RESTART IDENTITY;")
 
     # 데이터프레임을 PostgreSQL 테이블에 삽입
     for index, row in df.iterrows():
@@ -68,7 +67,7 @@ def load_to_postgres(**kwargs):
 with DAG(
     'dag_etl_test',
     default_args=default_args,
-    schedule_interval='@daily',
+    schedule="0 8 * * *",
     catchup=False,
 ) as dag:
 
